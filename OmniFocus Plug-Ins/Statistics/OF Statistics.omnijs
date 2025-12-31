@@ -26,7 +26,7 @@
                         ),
                         stats = unlines([
                             `INBOX:`,
-                            `\t- Inbox items: ${inboxTasks().length}`,
+                            `\t- Active inbox items: ${inboxTasks().length}`,
                             `FOLDERS:`,
                             ...statsList('Folder'),
                             `PROJECTS:`,
@@ -74,15 +74,16 @@
 
                 // inboxTasks :: () -> [OFTask]
                 const inboxTasks = () => {
-                    const xs = filter(x => x.inInbox)(
-                        flattenedTasks
-                    );
-                    return concatMap(x => {
-                        const tasks = x.flattenedTasks;
-                        return 0 === tasks.length ? (
-                            x
-                        ) : [x, ...tasks]
-                    })(xs)
+                    const active = [
+                        Task.Status.Available,
+                        Task.Status.DueSoon,
+                        Task.Status.Next,
+                        Task.Status.Overdue
+                    ];
+                    return filter(x =>
+                        x.inInbox &&
+                        active.includes(x.taskStatus)
+                    )(flattenedTasks);
                 };
 
                 // FUNCTIONS --
