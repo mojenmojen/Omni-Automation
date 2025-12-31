@@ -51,22 +51,38 @@
                 };
 
                 const flattenedObjectsByStatus = parent => type => {
-                    const tupleFromObj =
-                        fanArrow(
-                            compose(
-                                enumValName,
-                                x => x[x.constructor.name === 'Task' ? 'taskStatus' : 'status']
+                    const
+                        // All possible statuses for each type
+                        allStatuses = {
+                            Folder: Folder.Status.all,
+                            Project: Project.Status.all,
+                            Tag: Tag.Status.all,
+                            Task: Task.Status.all
+                        },
+                        tupleFromObj =
+                            fanArrow(
+                                compose(
+                                    enumValName,
+                                    x => x[x.constructor.name === 'Task' ? 'taskStatus' : 'status']
+                                )
+                            )(x => x.name),
+                        counted = compose(
+                            map(second(length)),
+                            groupSort,
+                            map(tupleFromObj),
+                            filter(o =>
+                                !(o.constructor.name === "Task" &&
+                                isRootTask(o))
                             )
-                        )(x => x.name)
-                    return compose(
-                        map(second(length)),
-                        groupSort,
-                        map(tupleFromObj),
-                        filter(o =>
-                            !(o.constructor.name === "Task" &&
-                            isRootTask(o))
-                        )
-                    )(parent['flattened' + type + 's'])
+                        )(parent['flattened' + type + 's']),
+                        // Create map of status -> count
+                        countMap = new Map(counted.map(t => [t[0], t[1]])),
+                        // Include all statuses, defaulting to 0
+                        withZeros = allStatuses[type].map(s => {
+                            const name = enumValName(s);
+                            return Tuple(name)(countMap.get(name) || 0);
+                        });
+                    return withZeros;
                 }
 
                 // isRootTask :: OFTask -> Bool
